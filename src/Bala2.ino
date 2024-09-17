@@ -121,12 +121,13 @@ void loop() {
   }
 }
 
-static void PathTask(void *arg) {
+[[noreturn]] static void PathTask(void *arg) {
+  uint32_t last_ticks = 0;
   while (true) {
   }
 }
 
-static void PIDTask(void *arg) {
+[[noreturn]] static void PIDTask(void *arg) {
   pid.SetOutputLimits(MAX_POWER, -MAX_POWER);
   pid.SetDirection(-1);
 
@@ -136,6 +137,7 @@ static void PIDTask(void *arg) {
 
   int32_t last_encoder = 0;
   uint32_t last_ticks = 0;
+  float motor_speed = 0.0f;
   while (true) {
     vTaskDelayUntil(&last_ticks, pdMS_TO_TICKS(5));
 
@@ -147,7 +149,8 @@ static void PIDTask(void *arg) {
 
     int32_t encoder = bala.wheel_left_encoder + bala.wheel_right_encoder;
     // motor_speed filter
-    float motor_speed = 0.8 * motor_speed + 0.2 * (encoder - last_encoder);
+    motor_speed = 0.8f * motor_speed + 0.2f * (encoder - last_encoder);
+
     last_encoder = encoder;
 
     int16_t pwm_angle;
