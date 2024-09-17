@@ -8,7 +8,10 @@
 #include "pid.h"
 #include "calibration.h"
 
-extern uint8_t bala_img[41056];
+extern uint8_t bala_img[62582];
+
+
+
 static void PIDTask(void *arg);
 static void draw_waveform();
 
@@ -70,7 +73,7 @@ void setup(){
   ImuTaskStart(x_offset, y_offset, z_offset, &i2c_mutex);
   xTaskCreatePinnedToCore(PIDTask, "pid_task", 4 * 1024, NULL, 4, NULL, 1);
   
-  M5.Lcd.drawJpg(bala_img, 41056);
+  M5.Lcd.drawJpg(bala_img, sizeof(bala_img));
   if (calibration_mode) {
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.printf("calibration mode");
@@ -160,19 +163,20 @@ static void draw_waveform() {
 	#define X_OFFSET 100
 	#define Y_OFFSET 95
 	#define X_SCALE 3
+
 	static int16_t val_buf[MAX_LEN] = {0};
 	static int16_t pt = MAX_LEN - 1;
 	val_buf[pt] = constrain((int16_t)(getAngle() * X_SCALE), -50, 50);
 
-  if (--pt < 0) {
+    if (--pt < 0) {
 		pt = MAX_LEN - 1;
 	}
 
 	for (int i = 1; i < (MAX_LEN); i++) {
-		uint16_t now_pt = (pt + i) % (MAX_LEN);
-		M5.Lcd.drawLine(i + X_OFFSET, val_buf[(now_pt + 1) % MAX_LEN] + Y_OFFSET, i + 1 + X_OFFSET, val_buf[(now_pt + 2) % MAX_LEN] + Y_OFFSET, TFT_BLACK);
-		if (i < MAX_LEN - 1) {
-			M5.Lcd.drawLine(i + X_OFFSET, val_buf[now_pt] + Y_OFFSET, i + 1 + X_OFFSET, val_buf[(now_pt + 1) % MAX_LEN] + Y_OFFSET, TFT_GREEN);
-    }
+        uint16_t now_pt = (pt + i) % (MAX_LEN);
+        M5.Lcd.drawLine(i + X_OFFSET, val_buf[(now_pt + 1) % MAX_LEN] + Y_OFFSET, i + 1 + X_OFFSET, val_buf[(now_pt + 2) % MAX_LEN] + Y_OFFSET, TFT_BLACK);
+        if (i < MAX_LEN - 1) {
+            M5.Lcd.drawLine(i + X_OFFSET, val_buf[now_pt] + Y_OFFSET, i + 1 + X_OFFSET, val_buf[(now_pt + 1) % MAX_LEN] + Y_OFFSET, TFT_GREEN);
+        }
 	}
 }
