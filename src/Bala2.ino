@@ -3,6 +3,7 @@
 #include <M5Stack.h>
 #include "MadgwickAHRS.h"
 #include "bala.h"
+#include "bala_img.h"
 #include "calibration.h"
 #include "freertos/FreeRTOS.h"
 #include "imu_filter.h"
@@ -17,8 +18,6 @@ int clamp(int v, int minv, int maxv) {
 int16_t pwm_delta_lspeed = 0;
 int16_t pwm_delta_rspeed = 0;
 constexpr int16_t MAX_POWER = 1023;
-
-extern uint8_t bala_img[62582];
 
 static void PIDTask(void *arg);
 static void PathTask(void *arg);
