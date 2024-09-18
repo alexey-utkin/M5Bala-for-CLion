@@ -3,6 +3,7 @@
 #include <M5Stack.h>
 #undef min
 #include <atomic>
+#include <complex>
 
 #include "MadgwickAHRS.h"
 #include "bala.h"
@@ -146,10 +147,58 @@ void setup() {
   M5.Speaker.setVolume(4);
 }
 
+int16_t smstep(double x, double s, int16_t minV, int16_t maxV) {
+  double v1 = 1.0 / (1.0 + -std::exp(9.0 * (x - 0.5)));
+  double v2 = x;
+  if (x >= 1) {
+    v2 = 1;
+  } else if (x <= 0) {
+    v2 = 0;
+  }
+  double v = s*v1 + (1-s)*v2;
+  return minV + int16_t(double(maxV - minV) * v);
+}
+
 // the loop routine runs over and over again forever
 void loop() {
+  M5.update();
+
+  Step step = dance[gStepNo % dance.size()];
+  int16_t LCDw = M5.Lcd.width();
+  int16_t LCDh = M5.Lcd.height();
+
+  static uint32_t next_show_time = 0;
+  if (millis() > next_show_time) {
+    M5.Lcd.startWrite();
+    draw_waveform();
+
+    constexpr int EYE_SIZE = 20;
+    constexpr int EYE_GAP = 100;
+    constexpr int EYE_SIZE_IN = EYE_SIZE*0.65;
+    constexpr int EYE_OFFSET_H = 50;
+    constexpr int X_SCALE = 3;
+
+    double angle_d = constrain((int16_t)(getAngle() * X_SCALE), 0, 100);
+    double offset_s = double(std::sin(double(millis())/100.0)*0.5)+0.5;
+    double speed_l = angle_d/100.0; //double(pwm_delta_lspeed)+double(pwm_speed_mid)*3.0+angle_d;
+    double speed_r = angle_d/100.0; //double(pwm_delta_rspeed)+double(pwm_speed_mid)*3.0+angle_d;
+
+    int16_t s_of = smstep(offset_s, 0, -EYE_SIZE+EYE_SIZE_IN, EYE_SIZE-EYE_SIZE_IN);
+    int16_t l_of = smstep(speed_l, 0, -EYE_SIZE+EYE_SIZE_IN, EYE_SIZE-EYE_SIZE_IN);
+    int16_t r_of = smstep(speed_r, 0, -EYE_SIZE+EYE_SIZE_IN, EYE_SIZE-EYE_SIZE_IN);
+
+    M5.Lcd.fillCircle(LCDw/2-EYE_SIZE-EYE_GAP/2, LCDh/2+EYE_OFFSET_H, EYE_SIZE, TFT_WHITE);
+    M5.Lcd.fillCircle(LCDw/2-EYE_SIZE-EYE_GAP/2+s_of, LCDh/2+EYE_OFFSET_H+l_of, EYE_SIZE*0.65, TFT_BLACK);
+
+    M5.Lcd.fillCircle(LCDw/2+EYE_SIZE+EYE_GAP/2, LCDh/2+EYE_OFFSET_H, EYE_SIZE, TFT_WHITE);
+    M5.Lcd.fillCircle(LCDw/2+EYE_SIZE+EYE_GAP/2-s_of, LCDh/2+EYE_OFFSET_H+r_of, EYE_SIZE*0.65, TFT_BLACK);
+    M5.Lcd.endWrite();
+
+    next_show_time = millis() + 15;
+  }
+
   static uint32_t sound_t = 0;
-  static bool sound_on = true;
+  static bool sound_on = false;
 
   if (sound_on) {
     int sound_n = 100;
@@ -163,16 +212,6 @@ void loop() {
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 
-  Step step = dance[gStepNo % dance.size()];
-  //step.showStep("");
-
-  static uint32_t next_show_time = 0;
-  if (millis() > next_show_time) {
-    draw_waveform();
-    next_show_time = millis() + 20;
-  }
-  M5.update();
-
   if (M5.BtnA.wasPressed()) {
     if (calibration_mode) {
       angle_point += 0.25;
@@ -185,6 +224,9 @@ void loop() {
         pid.SetPoint(angle_point);
     } else {
       sound_on = !sound_on;
+      if (!sound_on) {
+        M5.Speaker.mute();
+      }
     }
   }
   if (M5.BtnB.wasPressed()) {
@@ -192,6 +234,7 @@ void loop() {
       calibrationSaveCenterAngle(angle_point);
     } else {
       sound_t = 0;
+      sound_on = true;
     }
   }
 }
@@ -243,6 +286,7 @@ constexpr int strength = 20;
     bala.UpdateEncoder();
 
     int32_t encoder = bala.wheel_left_encoder + bala.wheel_right_encoder;
+
     // motor_speed filter
     motor_speed = 0.8f * motor_speed + 0.2f * (encoder - last_encoder);
     last_encoder = encoder;
