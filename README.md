@@ -1,6 +1,12 @@
 # M5Bala for CLion
 M5Stack balance car: CLion project with installed PaltformIO plugin
 
+<div style="width: 500px"><center>
+
+![A picture of a robot resting on top of a laptop](./media/CoverPage.jpg)
+
+</center></div>
+
 ### Quick Start
 
 - Install [CLion](https://www.jetbrains.com/clion/download/)
