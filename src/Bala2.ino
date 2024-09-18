@@ -12,7 +12,45 @@
 #include "freertos/FreeRTOS.h"
 #include "imu_filter.h"
 #include "pid.h"
-#include <M5Stack.h>
+
+constexpr int CORRECTION_TICKS = 5;
+
+enum class MotionState : char {
+  Stop = 0,
+  Stabilize = 1,
+  Move = 2
+};
+
+std::atomic<MotionState> STATE{MotionState::Stabilize};
+std::atomic<int16_t> pwm_delta_lspeed{0};
+std::atomic<int16_t> pwm_delta_rspeed{0};
+std::atomic<int16_t> pwm_speed_mid{0};
+std::atomic<int16_t> gStepNo{0};
+
+struct Step {
+  const char *name;
+  int16_t left;
+  int16_t right;
+  int16_t duration;
+
+  void showStep(const char *s) const {
+    M5.Lcd.setCursor(0, 0);
+    M5.Lcd.print(s);
+    M5.Lcd.println(name);
+  }
+};
+std::vector<Step> dance = {
+  {"Fw L",  5,  1,   100},
+  {"Rv L", -5, -1,   100},
+  {"Fw R",  1,  5,   100},
+  {"Rv R", -1, -5,   100},
+  {"Stop",  0,  0,   100},
+  // {"Fw R",  1,  5,   100},
+  // {"Rv R", -1, -5,   100},
+  // {"Fw L",  5,  1,   100},
+  // {"Rv L", -5, -1,   100},
+  // {"Stop",  0,  0,   100},
+};
 
 template <typename T>
 const T &clamp(const T &v, const T &minv, const T &maxv) {
@@ -91,7 +129,7 @@ void setup() {
   angle_point = angle_center;
   pid.SetPoint(angle_point);
 
-  M5.Lcd.setTextSize(8);
+  M5.Lcd.setTextSize(4);
 
   SemaphoreHandle_t i2c_mutex = xSemaphoreCreateMutex();
   bala.SetMutex(&i2c_mutex);
@@ -110,24 +148,29 @@ void setup() {
 
 // the loop routine runs over and over again forever
 void loop() {
+  static uint32_t sound_t = 0;
+  static bool sound_on = true;
+
+  if (sound_on) {
+    int sound_n = 100;
+    M5playMusic(bala_snd, sizeof(bala_snd), BALA_SND_SAMPLE_RATE, 8, sound_t, sound_n);
+    sound_t += sound_n;
+    if (sound_t >= sizeof(bala_snd)) {
+      sound_t = 0;
+    }
+  }
+  else {
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
+
+  Step step = dance[gStepNo % dance.size()];
+  //step.showStep("");
+
   static uint32_t next_show_time = 0;
   if (millis() > next_show_time) {
     draw_waveform();
     next_show_time = millis() + 20;
   }
-
-  static uint32_t sound_t = 0;
-  static bool sound_on = true;
-
-  uint32_t sound_n = 100;
-  if (sound_on) {
-    M5playMusic(bala_snd, sizeof(bala_snd), BALA_SND_SAMPLE_RATE, 8, sound_t, sound_n);
-    sound_t += sound_n;
-  }
-  if (sound_t > sizeof(bala_snd)) {
-    sound_t = 0;
-  }
-
   M5.update();
 
   if (M5.BtnA.wasPressed()) {
@@ -153,57 +196,25 @@ void loop() {
   }
 }
 
-constexpr int CORRECTION_TICKS = 5;
-enum class MotionState : char {
-  Stop = 0,
-  Stabilize = 1,
-  Move = 2
-};
-std::atomic<MotionState> STATE{MotionState::Stabilize};
-std::atomic<int16_t> pwm_delta_lspeed{0};
-std::atomic<int16_t> pwm_delta_rspeed{0};
-std::atomic<int16_t> pwm_speed_mid{0};
-
-struct Step {
-  const char *name;
-  int16_t left;
-  int16_t right;
-  int16_t duration;
-
-  void showStep(const char *s) const {
-    M5.Lcd.setCursor(0, 0);
-    M5.Lcd.print(s);
-    M5.Lcd.println(name);
-  }
-};
-
 constexpr int ritmus = 10;
 constexpr int strength = 20;
-std::vector<Step> dance = {
-    {"Fw L", 5, 1,   100},
-    {"Rv L", -5, -1, 100},
-    {"Fw R", 1, 5,   100},
-    {"Rv R", -1, -5, 100},
-    {"Stop", -1, -5, 100},
-};
 
 [[noreturn]] void PathTask(void *arg) {
   uint32_t last_ticks = 0;
   int step_no = 0;
   int step_count = dance.size();
   while (true) {
+    gStepNo = step_no;
     Step step = dance[step_no % step_count];
-    step.showStep("1");
     STATE = MotionState::Stabilize;
     vTaskDelayUntil(&last_ticks, pdMS_TO_TICKS(CORRECTION_TICKS * 10));
 
     STATE = MotionState::Move;
-    step.showStep("2");
+
     pwm_delta_lspeed = step.left * strength * 2;
     pwm_delta_rspeed = step.right * strength * 2;
     vTaskDelayUntil(&last_ticks, pdMS_TO_TICKS(CORRECTION_TICKS * 10));
 
-    step.showStep("3");
     pwm_delta_lspeed = step.left * strength;
     pwm_delta_rspeed = step.right * strength;
     vTaskDelayUntil(&last_ticks, pdMS_TO_TICKS(step.duration * ritmus));
@@ -228,7 +239,6 @@ std::vector<Step> dance = {
 
     // in imu task update, update freq is 200HZ
     float bala_angle = getAngle();
-
     // Get motor encoder value
     bala.UpdateEncoder();
 
