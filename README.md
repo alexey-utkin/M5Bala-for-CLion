@@ -7,6 +7,30 @@ M5Stack balance car: CLion project with installed PaltformIO plugin
 
 </center></div>
 
+## Hardware
+
+* M5 Bala Fire (Bala 2)
+  * [Web Archive: BALA2Fire](https://web.archive.org/web/20240512191808/https://docs.m5stack.com/en/app/bala2fire)
+
+<table>
+<tr>
+
+<td><div style="width: 200px">
+
+![A picture of a robot resting on top of a laptop](./media/BalaRobot1.jpg)
+
+</div></td>
+
+<td><div style="width: 200px">
+
+![A picture of a robot resting on top of a laptop](./media/BalaRobot2.jpg)
+
+</div></td>
+
+</tr>
+</table>
+
+
 ### Quick Start
 
 - Install [CLion](https://www.jetbrains.com/clion/download/)
