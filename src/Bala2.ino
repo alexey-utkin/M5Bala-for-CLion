@@ -7,14 +7,29 @@
 #include "MadgwickAHRS.h"
 #include "bala.h"
 #include "bala_img.h"
+#include "bala_snd.h"
 #include "calibration.h"
 #include "freertos/FreeRTOS.h"
 #include "imu_filter.h"
 #include "pid.h"
+#include <M5Stack.h>
 
 template <typename T>
 const T &clamp(const T &v, const T &minv, const T &maxv) {
   return std::max(minv, std::min(v, maxv));
+}
+
+void M5playMusic(const uint8_t* music_data, size_t music_len, uint16_t sample_rate, uint8_t volume, int t, int n) {
+    uint16_t _delay_interval = ((uint32_t)1000000 / sample_rate);
+    uint8_t  _volume        = 11 - volume;
+
+    // fade out last sample value
+    for (int i = t; i < music_len && i < t + n; i++) {
+        dacWrite(SPEAKER_PIN, music_data[i] / _volume);
+        delayMicroseconds(_delay_interval);
+    }
+
+    ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
 }
 
 constexpr int16_t MAX_POWER = 1023;
@@ -90,33 +105,51 @@ void setup() {
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.printf("calibration mode");
   }
+  M5.Speaker.setVolume(4);
 }
 
 // the loop routine runs over and over again forever
 void loop() {
   static uint32_t next_show_time = 0;
-  vTaskDelay(pdMS_TO_TICKS(5));
-
   if (millis() > next_show_time) {
     draw_waveform();
-    next_show_time = millis() + 10;
+    next_show_time = millis() + 20;
+  }
+
+  static uint32_t sound_t = 0;
+  static bool sound_on = true;
+
+  uint32_t sound_n = 100;
+  if (sound_on) {
+    M5playMusic(bala_snd, sizeof(bala_snd), BALA_SND_SAMPLE_RATE, 8, sound_t, sound_n);
+    sound_t += sound_n;
+  }
+  if (sound_t > sizeof(bala_snd)) {
+    sound_t = 0;
   }
 
   M5.update();
-  if (M5.BtnA.wasPressed()) {
-    angle_point += 0.25;
-    pid.SetPoint(angle_point);
-  }
 
+  if (M5.BtnA.wasPressed()) {
+    if (calibration_mode) {
+      angle_point += 0.25;
+      pid.SetPoint(angle_point);
+    }
+  }
+  if (M5.BtnC.wasPressed()) {
+    if (calibration_mode) {
+        angle_point -= 0.25;
+        pid.SetPoint(angle_point);
+    } else {
+      sound_on = !sound_on;
+    }
+  }
   if (M5.BtnB.wasPressed()) {
     if (calibration_mode) {
       calibrationSaveCenterAngle(angle_point);
+    } else {
+      sound_t = 0;
     }
-  }
-
-  if (M5.BtnC.wasPressed()) {
-    angle_point -= 0.25;
-    pid.SetPoint(angle_point);
   }
 }
 
