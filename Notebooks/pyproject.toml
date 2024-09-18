@@ -11,6 +11,9 @@ python = "^3.11"
 jupyterlab = "^4.2.5"
 pandas = "^2.2.2"
 pillow = "^10.4.0"
+pydub = "^0.25.1"
+soundfile = "^0.12.1"
+matplotlib = "^3.9.2"
 
 [build-system]
 requires = ["poetry-core"]
