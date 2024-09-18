@@ -41,11 +41,11 @@ struct Step {
   }
 };
 std::vector<Step> dance = {
-  {"Fw L",  5,  1,   100},
-  {"Rv L", -5, -1,   100},
-  {"Fw R",  1,  5,   100},
-  {"Rv R", -1, -5,   100},
-  {"Stop",  0,  0,   100},
+  {"Fw L",  5,  1,   200},
+  {"Rv L", -5, -1,   200},
+  {"Fw R",  1,  5,   200},
+  {"Rv R", -1, -5,   200},
+  {"Stop",  0,  0,   200},
   // {"Fw R",  1,  5,   100},
   // {"Rv R", -1, -5,   100},
   // {"Fw L",  5,  1,   100},
@@ -239,8 +239,8 @@ void loop() {
   }
 }
 
-constexpr int ritmus = 10;
-constexpr int strength = 20;
+constexpr int ritmus = 5;
+constexpr int strength = 40;
 
 [[noreturn]] void PathTask(void *arg) {
   uint32_t last_ticks = 0;
