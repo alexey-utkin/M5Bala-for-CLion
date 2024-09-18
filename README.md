@@ -1,34 +1,26 @@
 # M5Bala for CLion
 M5Stack balance car: CLion project with installed PaltformIO plugin
 
-<div style="width: 500px"><center>
+<div style="width: 500px">
 
 ![A picture of a robot resting on top of a laptop](./media/CoverPage.jpg)
 
-</center></div>
+</div>
 
 ## Hardware
 
-* M5 Bala Fire (Bala 2)
+* M5 Bala Fire (Bala 2) - Programmable Self-Balancing Robot
   * [Web Archive: BALA2Fire](https://web.archive.org/web/20240512191808/https://docs.m5stack.com/en/app/bala2fire)
 
-<table>
-<tr>
-
-<td><div style="width: 200px">
+<table><tr><td><div style="width: 200px">
 
 ![A picture of a robot resting on top of a laptop](./media/BalaRobot1.jpg)
 
-</div></td>
-
-<td><div style="width: 200px">
+</div></td><td><div style="width: 200px">
 
 ![A picture of a robot resting on top of a laptop](./media/BalaRobot2.jpg)
 
-</div></td>
-
-</tr>
-</table>
+</div></td></tr></table>
 
 
 ### Quick Start

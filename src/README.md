@@ -1,4 +1,5 @@
-Ready or CLiob Project!
+Ready or CLion Project!
 
-Programmable Self-Balansing Robot
+Programmable Self-Balancing Robot
+
 Bala2 Fire Robot Kit
